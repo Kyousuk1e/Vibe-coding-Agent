@@ -157,7 +157,9 @@ npm run test:live
 
 `npm test` 完全离线，不要求 API Key；通过可控响应测试真实 Runtime 的分支和状态，而不是用它替代产品 LLM。`npm run test:live` **真的调用配置的 LLM 并产生 API 用量**，执行纯对话记忆、计算、搜索、天气+待办、第二窗口周报、工具追问和重启恢复；缺失 Key 会失败，不会跳过或报假成功。结果写入被 Git 忽略的 `docs/live-result.json`，测试使用独立临时目录。
 
-详细用例见 [docs/TEST_CASES.md](docs/TEST_CASES.md)，本次验证状态见 [docs/VALIDATION.md](docs/VALIDATION.md)。GitHub Actions 配置了 Node 22/24 × Windows/Linux 的离线校验；真实 API 测试不自动运行，避免把密钥或调用费用带入 PR。
+详细用例见 [docs/TEST_CASES.md](docs/TEST_CASES.md)，本次验证状态见 [docs/VALIDATION.md](docs/VALIDATION.md)，已通过的千问实测见 [docs/LIVE_API_EVIDENCE.md](docs/LIVE_API_EVIDENCE.md)。真实验收包含新建Runtime后加载原session继续聊天。GitHub Actions 配置了 Node 22/24 × Windows/Linux 的离线校验；真实 API 测试不自动运行，避免把密钥或调用费用带入 PR。
+
+真实测试曾发现模型省略todo调用却声称完成的情况。Prompt已加强多项任务检查，并通过定向回归与完整实测；模型自主决策仍可能出错，调用方应结合实际工具trace和持久化状态判断执行结果，不能仅凭自然语言确认。
 
 ## 配置
 
