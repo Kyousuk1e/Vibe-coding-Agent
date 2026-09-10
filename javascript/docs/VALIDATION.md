@@ -33,10 +33,12 @@
 
 ## 历史远程 CI
 
+本次独立项目的远程检查已通过：2026-09-10，提交 `5e853d5`，Windows/Linux × Node.js 22/24 共 4 个任务全部成功。[本次独立项目执行记录](https://github.com/Kyousuk1e/Vibe-coding-Agent/actions/runs/34496604216)。每个任务只把本项目复制到独立临时目录，再运行语法检查和 77 项离线测试；执行不依赖父目录共享源码。该记录对应这个代码与工作流提交，后续纯文档更新不改变验证对象。
+
 - 提交 `874614c`：Windows/Linux × Node.js 22/24 的 4 个任务全部通过。[历史运行](https://github.com/Kyousuk1e/Vibe-coding-Agent/actions/runs/34436306389)
 - 提交 `5ec3634`：目录分类后，上述 Node.js 4 个组合在综合 CI 中通过。[历史运行](https://github.com/Kyousuk1e/Vibe-coding-Agent/actions/runs/34493933994)
 
-本项目自带 [.github/workflows/test.yml](../.github/workflows/test.yml)，将本目录单独作为 GitHub 仓库根目录时可以运行。工作流文件存在不代表已经完成一次新的远程运行；实际结果应以对应提交的运行记录为准。
+本项目自带 [.github/workflows/test.yml](../.github/workflows/test.yml)，将本目录单独作为 GitHub 仓库根目录时可以运行。上面的实际记录来自父仓库的单项目复制检查；本项目尚未被发布为另一个独立 GitHub 仓库。
 
 ## 如何复验
 

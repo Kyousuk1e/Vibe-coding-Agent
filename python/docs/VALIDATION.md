@@ -31,7 +31,9 @@
 | 本次调整后的真实 API 重跑 | 未以本次独立目录为对象重新执行；下面保留既有真实证据 |
 | 独立工作流远程运行 | 见 [Python CI 执行记录](https://github.com/Kyousuk1e/Vibe-coding-Agent/actions/workflows/python.yml)，以对应提交的实际任务结果为准 |
 
-项目自带 [.github/workflows/test.yml](../.github/workflows/test.yml)，可在独立仓库执行 Python 矩阵。后续实际远程结果应记录检查时间、提交及通过数量。
+2026-09-10，提交 `798fb3f` 的 Windows/Linux × Python 3.11/3.14 共 4 个远程任务全部成功，见 [本次独立项目执行记录](https://github.com/Kyousuk1e/Vibe-coding-Agent/actions/runs/34496400155)。每个任务只把本项目复制到独立临时目录，再执行语法检查和 95 项离线测试。该记录对应这个代码与工作流提交，后续纯文档更新不改变验证对象。
+
+项目自带 [.github/workflows/test.yml](../.github/workflows/test.yml)，可在独立仓库执行 Python 矩阵。上面的实际记录来自父仓库的单项目复制检查；本项目尚未被发布为另一个独立 GitHub 仓库。
 
 ## 真实 API 历史结果与边界
 
