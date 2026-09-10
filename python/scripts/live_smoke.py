@@ -107,7 +107,7 @@ async def run(report_path):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--report", type=Path,
-                        default=Path(__file__).resolve().parents[2] / "docs/python-live-result.json")
+                        default=Path(__file__).resolve().parents[1] / "docs/live-result.json")
     args = parser.parse_args()
     try:
         raise SystemExit(asyncio.run(run(args.report)))

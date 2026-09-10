@@ -1,22 +1,38 @@
-# JavaScript / Node.js 版本
+# Minimal Agent：个人安排与工作整理助手
 
 一个使用**真实千问 API**、由 Node.js 标准库实现的 Agent。核心代码没有 LangGraph、LangChain、OpenHands、OpenClaw、PI 或 Agent SDK，也没有第三方运行依赖。
 
 代码仓库：<https://github.com/Kyousuk1e/Vibe-coding-Agent>
 
-本目录是原有的 **JavaScript（Node.js）版本**，不是 Java。另一个独立实现见 [Python 版本](../python/README.md)，版本对比见 [仓库首页](../README.md)。
+这是一个可以独立复制、运行和提交的 **JavaScript / Node.js 项目**。源码、测试、配置样例、运行脚本、验证记录与 CI 都在本项目目录中。
+
+## 业务背景与项目目标
+
+个人在工作与生活中经常需要来回切换聊天、资料查询、计算和待办记录。例如先了解出行天气，再记一条带伞待办；或者把本周工作事实整理成周报，并记录下周要做的事项。本项目用自然语言入口把这些步骤串起来，同时保留可检查的工具结果和会话状态。
+
+目标用户是需要管理日常安排与整理工作内容的个人使用者，也适合后端开发者学习一个 Agent 的完整执行过程。项目范围是单机最小可用原型：完成工具决策、真实执行、状态保存、连续追问和故障处理，便于验证从零实现 Runtime 的工程细节。
+
+| 典型场景 | 用户输入 | 业务结果 |
+| --- | --- | --- |
+| 日常安排 | 查询上海天气，并记一条“明天带伞”的待办 | 展示明确标注为模拟的天气，创建真实的本地待办记录 |
+| 工作整理 | 本周完成工具注册，下周补测试。写周报，并记待办“周五提交周报” | 根据提供的事实整理文本，同时保存待办 |
+| 信息与计算 | 搜索上下文压缩资料；计算 `(123+456)*7` | 查询本地演示资料或安全计算，返回可核对的来源与数值 |
+| 连续追问 | 把刚才带伞那项标记完成 | 使用当前会话中的真实待办 ID 更新状态 |
+| 多窗口使用 | 同一用户分别打开天气窗口、周报窗口 | 两个 Session 的历史、摘要、待办互不混入 |
+
+这是单 Agent、多 Session 设计。周报由模型根据用户给出的事实生成；没有独立“周报 Agent”、协调 Agent 或自动定时提醒服务。
 
 LLM 自主选择直接回答或调用 `calculator`、`search`、`todo`、`weather`。只有 search/weather 的数据是明确标识的 mock；生产运行入口不会回退到 mock LLM。离线测试使用可控响应来验证运行时，真实模型验收单独运行。
 
 ## 运行方式
 
-需要 Node.js **22.13+**（本地验证使用 Node.js 24）。无需 `npm install`。本页 npm 命令均在仓库的 `javascript/` 目录运行；每个新终端先进入该目录。
+需要 Node.js **22.13+**（已有本地验证使用 Node.js 24）。无需 `npm install`。以下命令均假定终端当前位于本项目根目录，即能看到 `package.json`、`src/` 和本 README 的目录；复制出整个项目后命令不变。
 
 ```powershell
-git clone https://github.com/Kyousuk1e/Vibe-coding-Agent.git
-cd Vibe-coding-Agent/javascript
 Copy-Item .env.example .env
 ```
+
+macOS/Linux 对应命令为 `cp .env.example .env`。
 
 编辑 `.env`，填入自己的百炼 API Key：
 
@@ -27,7 +43,7 @@ LLM_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
 LLM_MODEL=qwen-plus
 ```
 
-默认地址是北京地域的兼容接口。也可填百炼控制台提供的业务空间专属 Base URL；API Key 必须与接口地域匹配，Base URL 不包含 `/chat/completions`。参见[百炼 OpenAI 兼容说明](https://help.aliyun.com/zh/model-studio/compatibility-of-openai-with-dashscope)。项目不会输出或提交密钥。
+默认地址是北京地域的兼容接口。也可填百炼控制台提供的业务空间专属 Base URL；密钥与接口应使用同一服务配置，Base URL 不包含 `/chat/completions`。参见[百炼 OpenAI 兼容说明](https://help.aliyun.com/zh/model-studio/compatibility-of-openai-with-dashscope)。实际 `.env` 不应进入版本控制，日志不会记录 API Key。
 
 终端 0 启动服务：
 
@@ -63,6 +79,10 @@ CLI 命令：`/sessions` 列出自己的会话，`/use ID` 切换，`/new 标题
 
 ## 系统设计
 
+千问负责理解用户输入、阅读 context/system、根据工具描述和参数 Schema 选择工具，以及结合观察结果生成回复。自行编写的 Runtime 负责加载状态、构建请求、解析输出、校验和执行工具、回填结果、控制轮次、保存状态并记录 trace。模型提出调用不会自动执行；执行权始终在程序中。
+
+`AgentRuntime` 通过构造函数接收 `store`、`client`、`registry`、`context`、`traceWriter` 等模块。依赖注入使离线测试能够只替换 LLM 返回，继续执行相同的真实主流程。`maxSteps` 是循环配置，不是工具或模型。
+
 ```mermaid
 flowchart TD
   A[CLI / HTTP 用户输入] --> B[按 userId + sessionId 加锁并加载会话]
@@ -90,6 +110,20 @@ flowchart TD
 | [src/context.js](src/context.js) | memory 召回、完整回合压缩、上下文硬限制 |
 | [src/trace.js](src/trace.js) | 按会话保存 JSONL trace |
 | [src/server.js](src/server.js) / [src/cli.js](src/cli.js) | 本地 HTTP API 与多窗口入口 |
+
+项目结构：
+
+```text
+.
+├── src/                   # Runtime、LLM、工具、Session、Context、HTTP/CLI
+├── test/                  # node:test 离线测试
+├── scripts/               # 语法检查与真实 LLM 验收
+├── docs/                  # API、用例、证据、开发记录
+├── .github/workflows/     # Node.js 多平台 CI
+├── .env.example           # 配置样例
+├── package.json           # 运行命令；无第三方依赖
+└── README.md
+```
 
 LLM 请求使用 Chat Completions 的 `tools` 和 `tool_choice: auto`，选择逻辑没有关键词路由。每个工具的名称、描述、参数 Schema 来自注册表。千问发送 `max_tokens`、`enable_thinking: false`；本地校验始终执行，不依赖供应商严格 Schema 模式。协议依据[千问 Function Calling 文档](https://help.aliyun.com/zh/model-studio/qwen-function-calling)。
 
@@ -149,6 +183,19 @@ LLM 请求使用 Chat Completions 的 `tools` 和 `tool_choice: auto`，选择�
 
 这是单机 MVP：服务只监听 `127.0.0.1`，`X-User-Id` 用于演示 session 归属，**不是登录认证**。不要把它直接暴露到公网；同一 DATA_DIR 仅运行一个服务进程。扩展到多实例时需要真实身份认证和数据库事务/跨进程锁。自定义工具如果访问外部系统，还需要自己的幂等和补偿逻辑；本项目的回滚只覆盖本地 todos。AbortSignal 不能强制中断阻塞的同步代码。
 
+幂等检查发生在获取 Session 锁之后；锁覆盖“读文件 → 查缓存 → 执行 → 保存”，因此同一进程内相同请求并发到达也不会绕过缓存重复执行。状态与 `completedRequests` 保存在同一个会话文件。已经保存的 `error` 或 `max_steps` 也会被原 requestId 重放；确需重新执行时应创建新请求。请求级防重不会消除同一轮中模型重复提出 `todo.add` 的问题，也不能替外部订单服务保证仅下单一次。
+
+## 已实现范围与后续扩展边界
+
+| 已实现 | 当前边界 / 如需扩展 |
+| --- | --- |
+| 真实千问原生工具调用与有界循环 | 模型仍可能遗漏工具；自然语言“已完成”不是成功凭证 |
+| 本地 Session JSON、同一会话串行、不同会话并发 | 没有数据库、Redis、消息队列或分布式锁 |
+| 历史摘录压缩、当前待办独立召回 | 没有向量数据库、跨 Session 召回、无限记忆或 LLM 摘要服务 |
+| 本地待办、演示搜索与天气、普通算术 | 没有联网搜索、实时天气、外部日历同步和定时通知 |
+| HTTP/CLI、执行 trace、有限网络重试 | 没有图形界面、流式输出、通用权限 Hook 或多 Agent 调度 |
+| 本地用户归属检查与容量限制 | 多租户认证、部署到公网、监控告警需单独实现 |
+
 ## 测试与验收
 
 ```powershell
@@ -157,9 +204,9 @@ npm test
 npm run test:live
 ```
 
-`npm test` 完全离线，不要求 API Key；通过可控响应测试真实 Runtime 的分支和状态，而不是用它替代产品 LLM。`npm run test:live` **真的调用配置的 LLM 并产生 API 用量**，执行纯对话记忆、计算、搜索、天气+待办、第二窗口周报、工具追问和重建 Runtime 后恢复；缺失 Key 会失败，不会跳过或报假成功。结果写入仓库根目录下被 Git 忽略的 `docs/live-result.json`，测试使用独立临时目录。
+`npm test` 完全离线，不要求 API Key；通过可控响应测试真实 Runtime 的分支和状态，而不是用它替代产品 LLM。`npm run test:live` **真的调用配置的 LLM 并产生 API 用量**，执行纯对话记忆、计算、搜索、天气+待办、第二窗口周报、工具追问和重建 Runtime 后恢复；缺失 Key 会失败，不会跳过或报假成功。结果写入本项目内被 Git 忽略的 `docs/live-result.json`，测试使用独立临时目录。
 
-详细用例见 [docs/TEST_CASES.md](../docs/TEST_CASES.md)，目录拆分前的历史验证记录见 [docs/VALIDATION.md](../docs/VALIDATION.md)，已通过的千问实测见 [docs/LIVE_API_EVIDENCE.md](../docs/LIVE_API_EVIDENCE.md)。真实验收包含新建Runtime后加载原session继续聊天。GitHub Actions 配置了 Node 22/24 × Windows/Linux 的离线校验；真实 API 测试不自动运行，避免把密钥或调用费用带入 PR。
+详细用例见 [测试用例](docs/TEST_CASES.md)，历史与当前检查状态见 [验证记录](docs/VALIDATION.md)，已通过的千问实测见 [真实 API 证据](docs/LIVE_API_EVIDENCE.md)。历史记录包含 77 项离线测试和 22 个文件语法检查通过；最新结果以验证记录为准。真实验收包含新建 Runtime 后加载原 Session 继续聊天。独立 CI 配置位于 [.github/workflows/test.yml](.github/workflows/test.yml)，用于 Node 22/24 × Windows/Linux 离线校验；真实 API 测试需要显式运行。
 
 真实测试曾发现模型省略todo调用却声称完成的情况。Prompt已加强多项任务检查，并通过定向回归与完整实测；模型自主决策仍可能出错，调用方应结合实际工具trace和持久化状态判断执行结果，不能仅凭自然语言确认。
 
@@ -179,4 +226,4 @@ npm run test:live
 | LLM_MAX_RETRIES | 2 | 可重试故障的额外尝试数 |
 | MAX_OUTPUT_TOKENS | 1200 | 最大生成 token 数 |
 
-HTTP 接口与请求示例见 [docs/API.md](../docs/API.md)。AI 辅助开发的 Prompt 与实际问题解决记录见 [docs/AI_PROMPTS_AND_LOG.md](../docs/AI_PROMPTS_AND_LOG.md)。
+HTTP 接口与请求示例见 [API 说明](docs/API.md)。AI 辅助开发的 Prompt 与实际问题解决记录见 [AI Prompt 与问题解决记录](docs/AI_PROMPTS_AND_LOG.md)。

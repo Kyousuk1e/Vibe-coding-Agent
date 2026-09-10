@@ -8,7 +8,7 @@ import { readConfig } from '../src/config.js';
 import { createApp } from '../src/app.js';
 import { SessionStore } from '../src/store.js';
 
-const reportPath = fileURLToPath(new URL('../../docs/live-result.json', import.meta.url));
+const reportPath = fileURLToPath(new URL('../docs/live-result.json', import.meta.url));
 
 function successfulToolData(result, tool) {
   return result.trace.filter(event => event.event === 'tool.end' && event.tool === tool && event.ok).map(event => {
@@ -80,7 +80,7 @@ try {
   assert.deepEqual((await restartedApp.store.get('live_A', first.id)).todos, restoredFirst.todos, 'restart: first-window todo state must remain unchanged');
   assert.deepEqual((await restartedApp.store.get('live_A', second.id)).todos, restoredSecond.todos, 'restart: second-window todo state must remain unchanged');
   report.passed = true;
-  console.log('Real API smoke checks passed. See ../docs/live-result.json.');
+  console.log('Real API smoke checks passed. See docs/live-result.json.');
 } catch (err) {
   report.failure = { code: err.code || 'LIVE_CHECK_FAILED', message: String(err.message).slice(0, 600) };
   console.error(`Real API checks failed: ${report.failure.message}`);

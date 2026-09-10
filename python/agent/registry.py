@@ -60,7 +60,7 @@ def _matches_type(value: Any, kind: Any) -> bool:
 
 
 def _same_value(left: Any, right: Any) -> bool:
-    # Python considers True == 1; JSON Schema and the original registry do not.
+    # Python considers True == 1; JSON Schema distinguishes booleans and numbers.
     if type(left) is bool or type(right) is bool:
         return type(left) is type(right) and left == right
     return left == right

@@ -72,7 +72,7 @@ class SessionStoreTests(ErrorAssertions, unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.store.file_path("alice", session["id"]).name, name)
         saved = json.loads((self.store.data_dir / name).read_text(encoding="utf-8"))
         self.assertEqual(set(saved), {"id", "userId", "title", "createdAt", "updatedAt", "messages", "summary", "todos", "completedRequests"})
-        # Existing Node cache records may include failure or limit results.
+        # Persisted request cache records may include failure or limit results.
         saved["completedRequests"] = {"old": {"inputHash": "abc", "sequence": 1, "result": {"status": "max_steps"}}}
         (self.store.data_dir / name).write_text(json.dumps(saved), encoding="utf-8")
         self.assertEqual((await self.store.get("alice", session["id"]))["completedRequests"], saved["completedRequests"])

@@ -1,4 +1,4 @@
-"""JSON session persistence shared with the Node.js implementation.
+"""JSON session persistence with atomic file replacement and per-session locks.
 
 One SessionStore instance owns the locks for one server process. Hold ``lock``
 around the entire read/modify/save turn, not just the final file write.

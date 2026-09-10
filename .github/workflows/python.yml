@@ -1,0 +1,29 @@
+name: Python independent project
+on:
+  push:
+    paths:
+      - 'python/**'
+      - '.github/workflows/python.yml'
+  pull_request:
+    paths:
+      - 'python/**'
+      - '.github/workflows/python.yml'
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ['3.11', '3.14']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Copy only this project to an independent directory
+        run: python -c "import os, shutil; from pathlib import Path; shutil.copytree('python', Path(os.environ['RUNNER_TEMP']) / 'minimal-agent-python')"
+      - run: python scripts/check.py
+        working-directory: ${{ runner.temp }}/minimal-agent-python
+      - run: python -m unittest discover -s tests -v
+        working-directory: ${{ runner.temp }}/minimal-agent-python

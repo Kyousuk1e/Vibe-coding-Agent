@@ -1,6 +1,6 @@
 [project]
 name = "minimal-agent-python"
 version = "2.0.0"
-description = "A framework-free Python Agent with real Qwen API, sessions, tools and bounded context"
+description = "A standalone Python personal productivity Agent with real Qwen API, a hand-written runtime, tools and session memory"
 requires-python = ">=3.11"
 dependencies = []

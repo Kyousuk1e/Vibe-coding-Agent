@@ -1,77 +1,87 @@
-# 从零实现一个最小可用 Agent
+# 从零实现的个人事务与工作整理 Agent
 
-使用真实千问 API，自行实现 Agent Runtime、工具调用、Session 管理、上下文压缩、异常处理和 trace。两种语言分别放在独立目录，均无需第三方运行依赖，也没有使用现成 Agent 框架。
+这是一个面向个人日常安排和工作整理的最小可用 Agent。用户用自然语言提出任务，真实千问模型负责理解需求、选择工具和组织回答，程序负责执行工具、保存状态、管理上下文并限制执行范围。
 
-原有版本是 **JavaScript / Node.js**，不是 Java；新增版本是 **Python**。两版提供相同的核心业务：日常安排、工作整理、信息查询和计算。
+项目提供两个完整独立的实现：[JavaScript / Node.js](javascript/README.md) 和 [Python](python/README.md)。每个目录都有自己的代码、测试、配置模板、文档与 CI，可以单独复制、解压或放入独立 Git 仓库使用。
 
-| 内容 | JavaScript / Node.js | Python |
+## 业务背景
+
+日常工作中，一个需求经常包含多个动作，例如查询天气后记待办，或者整理本周进展后记录下周任务。用户还会追问“把刚才那项完成”“继续上次的周报”，并在不同窗口处理不同事情。
+
+本项目连接自然语言对话、工具执行和持久化状态：同一窗口可以持续追问，不同窗口拥有独立 Session；待办是否完成，以工具结果和保存的状态为准。
+
+## 典型使用场景
+
+| 场景 | 用户输入示例 | Agent 完成的工作 |
 | --- | --- | --- |
-| 独立目录与说明 | [javascript/README.md](javascript/README.md) | [python/README.md](python/README.md) |
-| 运行环境 | Node.js 22.13+ | Python 3.11+ |
-| 核心 Runtime | [javascript/src/runtime.js](javascript/src/runtime.js) | [python/agent/runtime.py](python/agent/runtime.py) |
-| 源码 | [javascript/src/](javascript/src/) | [python/agent/](python/agent/) |
-| 测试 | [javascript/test/](javascript/test/) | [python/tests/](python/tests/) |
-| 本地配置 | `javascript/.env` | `python/.env` |
-| 默认数据目录 | `javascript/data/` | `python/data/` |
+| 日常安排 | “查上海天气，并记待办：明天带伞” | 查询模拟天气，执行待办添加，结合结果回复 |
+| 工作整理 | “本周完成工具注册，下周补测试。写周报，并记待办：周五提交周报” | 根据用户提供的材料生成周报，保存待办 |
+| 信息查询 | “搜索上下文压缩的资料” | 查询本地模拟资料集，返回内容及来源 |
+| 数学计算 | “计算 (123+456)*7” | 使用安全计算器执行表达式，得到 4053 |
+| 连续追问 | “把刚才带伞那项标记完成” | 结合当前会话找到待办 ID，修改并保存状态 |
+| 多窗口工作 | 窗口一处理天气，窗口二处理周报 | 分别保存消息、摘要和待办，互不混入 |
 
-两版均使用真实 LLM 自主决策，提供 `calculator`、`search`、`todo`、`weather` 四个工具。search 和 weather 明确使用 mock 数据；计算及当前 Session 的待办修改真实执行。默认模型为千问 `qwen-plus`，生产入口不会回退到模拟 LLM。
+天气和搜索工具明确使用 mock 数据，模型调用使用真实 API。待办在本地实际持久化，计算器实际执行运算。周报根据用户提供的素材生成，项目不会自动读取外部工作系统。
 
-## 运行 JavaScript 版
+## 实现内容
 
-从仓库根目录进入该版本，并配置本地密钥：
+- **自写 Agent Runtime**：接收输入、构建上下文、请求模型、解析输出、执行工具、回填结果，直到返回答案或达到轮次上限。
+- **工具注册**：为 calculator、search、weather、todo 提供名称、描述和参数 Schema，执行前验证参数。
+- **会话与记忆**：按 userId 与 sessionId 管理 JSON 状态，保存历史、摘要和待办，支持加载后续聊。
+- **上下文压缩**：每次调用模型前召回当前状态，按预算压缩旧的完整回合，保留当前任务及工具调用配对。
+- **异常与日志**：处理参数错误、网络超时和有限重试，记录工具名称、参数、结果、耗时及结束状态。
+- **请求级幂等**：在有限请求缓存内复用相同 requestId 的结果，避免用户重复提交产生重复待办。
+- **两层验证**：离线测试控制模型输出，验证程序流程和状态；真实千问验收检查实际工具调用及持久化结果。
 
-```powershell
-cd javascript
-Copy-Item .env.example .env
-# 编辑本目录 .env，填写 DASHSCOPE_API_KEY
-npm start
+这是单 Agent、多个工具、多个独立会话的实现。任务由一条 Runtime 循环串联，没有使用现成 Agent 框架或多 Agent 编排。
+
+## 选择一个独立项目
+
+### JavaScript / Node.js
+
+[进入 JavaScript 项目说明](javascript/README.md)
+
+使用 Node.js 标准库，要求 Node.js 22.13+。核心入口是 [src/runtime.js](javascript/src/runtime.js)，包含 77 项离线测试、真实 API 验收脚本和完整交付文档。进入 javascript 目录后，按该版本 README 配置并运行。
+
+### Python
+
+[进入 Python 项目说明](python/README.md)
+
+使用 Python 标准库，要求 Python 3.11+。核心入口是 [agent/runtime.py](python/agent/runtime.py)，包含 95 项离线测试、真实 API 验收脚本和完整交付文档。进入 python 目录后，按该版本 README 配置并运行。
+
+```text
+.
+├── README.md
+├── javascript/             # 完整的 JavaScript 项目
+│   ├── README.md
+│   ├── .env.example
+│   ├── .gitignore
+│   ├── .github/workflows/
+│   ├── package.json
+│   ├── src/
+│   ├── test/
+│   ├── scripts/
+│   └── docs/               # 本版 API、测试、验证、AI Prompt 记录
+└── python/                 # 完整的 Python 项目
+    ├── README.md
+    ├── .env.example
+    ├── .gitignore
+    ├── .github/workflows/
+    ├── pyproject.toml
+    ├── agent/
+    ├── tests/
+    ├── scripts/
+    └── docs/               # 本版 API、测试、验证、AI Prompt 记录
 ```
 
-另开终端，同样先进入 `javascript/`：
+两版各自读取本目录的 .env，默认在本目录的 data 中保存会话和日志，真实验收报告也写入本版 docs。运行和测试任一版本都不需要另一个目录。父仓库的 CI 将单个版本复制到独立临时目录进行检查；子目录自带的 CI 可在该目录作为仓库根目录时直接使用。
 
-```powershell
-npm run chat -- --user A
-```
+## 使用范围与交付
 
-## 运行 Python 版
+项目适合展示 Agent 后端的基础工程能力和进行本地演示。存储使用 JSON 文件，锁仅覆盖单个服务进程；没有引入数据库、Redis、消息队列或生产认证。上下文压缩是有损摘录，requestId 缓存不等于外部订单工具的永久幂等保证。各版本 README 说明了具体实现边界。
 
-从仓库根目录进入该版本，并配置本地密钥：
+默认两个服务都使用端口 8787。同时运行时需分别配置端口，保持各自的数据目录独立。
 
-```powershell
-cd python
-Copy-Item .env.example .env
-# 编辑本目录 .env，填写 DASHSCOPE_API_KEY
-python -m agent serve
-```
-
-另开终端，同样先进入 `python/`：
-
-```powershell
-python -m agent chat --user A
-```
-
-Windows 上可用 `py` 替代 Python 命令。已经配置过本版本的 `.env` 时可直接启动，无需重新复制模板。两个服务默认都使用端口 8787；同时运行时为其中一个配置不同的 `PORT`，并让客户端连接对应地址。
-
-每个聊天窗口默认建立独立 Session，使用 `--session ID` 可续聊。两版 Session JSON 字段兼容；切换实现并续用同一份数据时，配置相同 `DATA_DIR` 且先停止原服务。**同一数据目录仅允许一个服务进程写入**。
-
-## 测试与提交资料
-
-| 检查 | 在 `javascript/` 执行 | 在 `python/` 执行 |
-| --- | --- | --- |
-| 语法检查 | `npm run check` | `python scripts/check.py` |
-| 离线测试 | `npm test` | `python -m unittest discover -s tests -v` |
-| 真实 API 验收 | `npm run test:live` | `python scripts/live_smoke.py` |
-
-离线测试不需要密钥。真实验收使用实际千问 API 并产生用量，单独检查工具 trace 和持久化状态。跨语言 Session 兼容检查在**仓库根目录**执行 `python scripts/check_compat.py`，需要 Node.js 和 Python，不调用模型。
-
-共同提交资料保留在根目录 [docs/](docs/)：
-
-- [系统接口说明](docs/API.md)
-- [测试用例与要求映射](docs/TEST_CASES.md)
-- [JavaScript 历史验证记录](docs/VALIDATION.md)与[真实千问证据](docs/LIVE_API_EVIDENCE.md)
-- [Python 验证记录](docs/PYTHON_VALIDATION.md)
-- [AI Prompt 与问题解决记录](docs/AI_PROMPTS_AND_LOG.md)
-
-两版 README 分别说明系统设计和 memory 的召回时机、放置方式及压缩边界。验证记录注明执行时间及适用版本，历史通过记录不代表之后每次目录调整的 CI 已通过。
+运行方式、系统设计、memory 召回时机与放置方式、测试用例、真实 API 验证证据，以及 AI Prompt 与问题解决记录，都在相应版本内部提供。
 
 代码仓库：[Kyousuk1e/Vibe-coding-Agent](https://github.com/Kyousuk1e/Vibe-coding-Agent)。

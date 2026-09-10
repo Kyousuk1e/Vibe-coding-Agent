@@ -1,4 +1,4 @@
-"""The same business rules and completion checks used by the Node.js runtime."""
+"""Business rules and completion checks for the personal productivity Agent."""
 
 SYSTEM_PROMPT = """你是一个最小可用的中文助手。你可以直接回答，也可以根据工具的名称、描述和 JSON Schema 自主选择调用工具，直到任务完成。
 规则：

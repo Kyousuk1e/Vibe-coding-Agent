@@ -6,9 +6,4 @@ node_modules/
 coverage/
 *.log
 *.tmp
-__pycache__/
-*.py[cod]
-.venv/
-*.egg-info/
-build/
-dist/
+docs/live-result.json
