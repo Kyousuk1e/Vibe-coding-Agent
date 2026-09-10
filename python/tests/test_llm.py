@@ -4,7 +4,7 @@ import json
 import os
 from pathlib import Path
 import tempfile
-import time
+import threading
 import traceback
 import unittest
 from unittest.mock import patch
@@ -179,27 +179,52 @@ class LLMTests(unittest.IsolatedAsyncioTestCase):
         async def transport(*args, **kwargs):
             calls.append(True)
             if len(calls) == 1:
-                await asyncio.sleep(10)
+                await asyncio.Event().wait()
             return response()
-        client = ChatClient(replace(config(timeout_ms=10), max_retries=1), transport=transport, sleep=delays.append)
+        def backoff(seconds):
+            delays.append(seconds)
+            # Only the deliberately blocked attempt needs a short deadline.
+            client.timeout_ms = 2000
+        client = ChatClient(replace(config(timeout_ms=100), max_retries=1), transport=transport, sleep=backoff)
         self.assertEqual(await client.complete(messages=MESSAGES), COMPLETION)
         self.assertEqual(len(calls), 2)
         self.assertEqual(delays, [0.25])
 
     async def test_late_thread_result_is_discarded_after_timeout(self):
         calls = []
+        loop = asyncio.get_running_loop()
+        started, finished = asyncio.Event(), asyncio.Event()
+        release = threading.Event()
         def transport(*args, **kwargs):
             calls.append(True)
             if len(calls) == 1:
-                time.sleep(0.05)
-                return response({"late": True})
+                loop.call_soon_threadsafe(started.set)
+                try:
+                    if not release.wait(5):
+                        raise RuntimeError("Test did not release the blocked transport")
+                    return response({"late": True})
+                finally:
+                    loop.call_soon_threadsafe(finished.set)
             return response()
-        client = ChatClient(config(timeout_ms=10), transport=transport)
-        with self.assertRaises(AgentError) as caught:
-            await client.complete(messages=MESSAGES)
-        self.assertEqual(caught.exception.code, "LLM_TIMEOUT")
-        await asyncio.sleep(0.07)
+        client = ChatClient(config(timeout_ms=1000), transport=transport)
+        pending = asyncio.create_task(client.complete(messages=MESSAGES))
+        try:
+            await asyncio.wait_for(started.wait(), 5)
+            with self.assertRaises(AgentError) as caught:
+                await pending
+            self.assertEqual(caught.exception.code, "LLM_TIMEOUT")
+            self.assertFalse(finished.is_set(), "Timeout must happen while the transport is still blocked")
+        finally:
+            # Always release the worker, even if an assertion fails; no guessed sleeps.
+            release.set()
+            if not pending.done():
+                pending.cancel()
+            await asyncio.gather(pending, return_exceptions=True)
+            await asyncio.wait_for(finished.wait(), 5)
+        self.assertEqual(pending.exception().code, "LLM_TIMEOUT")
+        client.timeout_ms = 2000
         self.assertEqual(await client.complete(messages=MESSAGES), COMPLETION)
+        self.assertEqual(len(calls), 2)
 
     async def test_external_task_cancellation_is_not_retried(self):
         started, calls = asyncio.Event(), []

@@ -1,18 +1,25 @@
 # Python 版本
 
-Python 版本位于 `agent/`，与现有 `src/` 中的 Node.js 版本并存。目标是保留业务流程、四个工具、HTTP 协议及会话持久化格式，提供一套适合阅读、演示和面试讨论的原生 Python 实现。
+Python 版本位于仓库的 `python/` 独立目录，源码在 `python/agent/`；原有 JavaScript / Node.js 版本位于 `javascript/`。目标是保留业务流程、四个工具、HTTP 协议及会话持久化格式，提供一套适合阅读、演示和面试讨论的原生 Python 实现。
 
 ## 运行
 
-需要 Python 3.11 或以上，无第三方运行依赖，无需 pip install。以下命令均在仓库根目录运行；Windows 可将 `python` 替换为 `py`。
+需要 Python 3.11 或以上，无第三方运行依赖，无需 pip install。除明确说明的跨语言检查外，以下命令均在仓库的 `python/` 目录运行。每个新终端先从仓库根目录执行 `cd python`；Windows 可将命令中的 `python` 替换为 `py`。
 
-复制 `.env.example` 为 `.env`，在本地配置真实 `DASHSCOPE_API_KEY`，模型默认 `qwen-plus`。已有可用 `.env` 可以直接复用。密钥不应提交到 Git。
+先进入 Python 目录并复制配置模板：
+
+```powershell
+cd python
+Copy-Item .env.example .env
+```
+
+编辑本目录的 `.env`，配置真实 `DASHSCOPE_API_KEY`，模型默认 `qwen-plus`。已有可用的千问配置可以复用；本版本默认读取 `python/.env`，数据保存在 `python/data/`。
 
 ```powershell
 python -m agent serve
 ```
 
-另开两个终端：
+另开两个终端，各自先进入 `python/` 目录，再分别运行：
 
 ```powershell
 python -m agent chat --user A --title 天气和待办
@@ -33,16 +40,16 @@ python -m agent chat --user A --session <sessionId>
 
 | Node.js 文件 | Python 文件 | 职责 |
 | --- | --- | --- |
-| src/runtime.js | agent/runtime.py | 自写带 await 的 for 循环、工具回填、轮数上限、回滚和幂等 |
-| src/llm.js | agent/llm.py | urllib + asyncio 调用真实 API、有限重试、超时和脱敏 |
-| src/parser.js | agent/parser.py | 原生 tool_calls、JSON 参数、简短决策摘要、最终答案 |
-| src/registry.js | agent/registry.py | 工具注册、参数 Schema 校验、执行隔离和超时 |
-| src/tools.js | agent/tools.py | calculator/search/todo/weather |
-| src/store.js | agent/store.py | JSON 状态、原子保存、同 Session 排队和损坏检测 |
-| src/context.js | agent/context.py | 每次模型调用前召回记忆，按完整回合压缩 |
-| src/trace.js | agent/trace.py | 按 Session 记录 JSONL trace |
-| src/app.js | agent/app.py | 依赖注入及生产模块组装 |
-| src/server.js、src/cli.js | agent/server.py、agent/cli.py | 单 asyncio 服务循环及多终端入口 |
+| [javascript/src/runtime.js](../javascript/src/runtime.js) | [python/agent/runtime.py](agent/runtime.py) | 自写带 await 的 for 循环、工具回填、轮数上限、回滚和幂等 |
+| [javascript/src/llm.js](../javascript/src/llm.js) | [python/agent/llm.py](agent/llm.py) | urllib + asyncio 调用真实 API、有限重试、超时和脱敏 |
+| [javascript/src/parser.js](../javascript/src/parser.js) | [python/agent/parser.py](agent/parser.py) | 原生 tool_calls、JSON 参数、简短决策摘要、最终答案 |
+| [javascript/src/registry.js](../javascript/src/registry.js) | [python/agent/registry.py](agent/registry.py) | 工具注册、参数 Schema 校验、执行隔离和超时 |
+| [javascript/src/tools.js](../javascript/src/tools.js) | [python/agent/tools.py](agent/tools.py) | calculator/search/todo/weather |
+| [javascript/src/store.js](../javascript/src/store.js) | [python/agent/store.py](agent/store.py) | JSON 状态、原子保存、同 Session 排队和损坏检测 |
+| [javascript/src/context.js](../javascript/src/context.js) | [python/agent/context.py](agent/context.py) | 每次模型调用前召回记忆，按完整回合压缩 |
+| [javascript/src/trace.js](../javascript/src/trace.js) | [python/agent/trace.py](agent/trace.py) | 按 Session 记录 JSONL trace |
+| [javascript/src/app.js](../javascript/src/app.js) | [python/agent/app.py](agent/app.py) | 依赖注入及生产模块组装 |
+| [javascript/src/server.js](../javascript/src/server.js)、[javascript/src/cli.js](../javascript/src/cli.js) | [python/agent/server.py](agent/server.py)、[python/agent/cli.py](agent/cli.py) | 单 asyncio 服务循环及多终端入口 |
 
 `AgentRuntime.run(user_id=..., session_id=..., input=..., request_id=...)` 先取得会话锁，再读文件与请求缓存。每次循环构建上下文并调用模型；解析到工具调用后，注册表验证参数并执行函数，原 assistant 工具调用及带 `tool_call_id` 的结果一起写入当前上下文，再调用模型。最终回答或达到上限后保存；本轮模型或上下文错误会回滚本轮 todos。
 
@@ -68,16 +75,20 @@ Python 使用 Unicode 字符计数，Node.js 字符串长度使用 UTF-16 单元
 
 ## 测试
 
+以下测试命令均在 `python/` 目录执行，测试源码见 [tests/](tests/)。
+
 ```powershell
 python scripts/check.py
 python -m unittest discover -s tests -v
 python scripts/live_smoke.py
 ```
 
-可选运行 `python scripts/check_compat.py`，它同时需要 Node.js 和 Python，用两个实际 Runtime 验证会话文件及幂等结果的双向互读，不调用模型 API。
+跨语言检查需回到**仓库根目录**运行 `python scripts/check_compat.py`（如果当前在 `python/`，先执行 `cd ..`）。它同时需要 Node.js 和 Python，用两个实际 Runtime 验证会话文件及幂等结果的双向互读，不调用模型 API。
 
 离线 unittest 使用真实 Runtime、注册表、工具、文件 Store、Context 和 HTTP 服务，仅控制模型返回或网络传输。测试涵盖参数/解析错误修复、多工具配对、真实并发重叠、幂等重放、缓存淘汰、失败结果重放、上限结果重放、回滚、压缩后追问、损坏文件保护及网络错误。
 
-真实 API 脚本单独运行，需要有效密钥并产生实际用量。它验证纯对话记忆、计算、搜索、天气+待办、独立周报会话、待办追问、新建完整 Runtime 后从原文件续聊。断言结合工具 trace 和精确落盘状态，不仅检查自然语言“已完成”。原始结果保存在被 Git 忽略的 `docs/python-live-result.json`。持久化恢复检查是在同一 Python 进程里重建组件，未冒充完整服务进程重启测试。
+真实 API 脚本单独运行，需要有效密钥并产生实际用量。它验证纯对话记忆、计算、搜索、天气+待办、独立周报会话、待办追问、新建完整 Runtime 后从原文件续聊。断言结合工具 trace 和精确落盘状态，不仅检查自然语言“已完成”。原始结果保存在**仓库根目录**被 Git 忽略的 `docs/python-live-result.json`。持久化恢复检查是在同一 Python 进程里重建组件，未冒充完整服务进程重启测试。
 
-GitHub Actions 在 Windows/Linux × Python 3.11/3.14 上执行语法和离线测试，原 Node.js 检查保留。真实 API 验收不放入 CI，避免在 PR 中引入密钥和调用费用。实际验证结果见 [Python 验证记录](PYTHON_VALIDATION.md)。
+GitHub Actions 配置 Windows/Linux × Python 3.11/3.14 的语法和离线测试，保留原 Node.js 检查，并在 Windows/Linux 各增加一个跨语言 Session 兼容任务。配置不代表每项已执行通过；实际状态见 [Python 验证记录](../docs/PYTHON_VALIDATION.md)。真实 API 验收不放入 CI，避免在 PR 中引入密钥和调用费用。
+
+共同提交资料见仓库根目录的 [docs/](../docs/)，返回 [仓库首页](../README.md)。

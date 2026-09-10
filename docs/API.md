@@ -1,5 +1,7 @@
 # 本地 HTTP API
 
+两个版本提供相同的业务接口，分别在 `javascript/` 中运行 `npm start`，或在 `python/` 中运行 `python -m agent serve`。实现见 [JavaScript 服务](../javascript/src/server.js) 与 [Python 服务](../python/agent/server.py)。
+
 基础地址 `http://127.0.0.1:8787`。除 `/health` 外都需要 `X-User-Id`（1–64 位字母、数字、下划线或连字符）。服务用于本机演示，这个 header 不是认证凭证。POST 使用 `Content-Type: application/json`，请求体最多 32KB。
 
 | 方法与路径 | 输入 | 返回 |
@@ -11,7 +13,7 @@
 | GET /sessions/:id | 用户 header | 对话、摘要、待办，不含幂等缓存 |
 | POST /sessions/:id/messages | `{ "input": "你好", "requestId": "req-001" }` | 本轮结果与 trace |
 
-PowerShell 完整示例（先 `npm start`）：
+PowerShell 完整示例（先按上面的目录和命令启动任一版本；客户端示例可在任意目录运行）：
 
 ```powershell
 $agentHeaders = @{ 'X-User-Id' = 'A' }
@@ -47,3 +49,5 @@ $agentResult.trace | ConvertTo-Json -Depth 10
 `status` 为 `ok`、`max_steps` 或 `error`。已执行并保存的用户回合返回 HTTP 200，客户端仍必须检查 status；`error` 回合的本地待办修改已回滚。网络重试应使用相同 requestId；收到 error 后要重新执行，应使用新的 requestId。最近 20 个请求内可幂等重放。
 
 无效参数返回 400；不属于当前用户或不存在的 session 返回 404；同一 requestId 用于不同输入返回 409；数据文件损坏/持久化故障返回 500。错误格式为 `{ "error": { "code": "...", "message": "..." } }`。不提供跨域浏览器调用支持。
+
+Python 的最小 HTTP 服务器要求 Content-Length 请求体，响应后关闭连接，不支持 chunked 请求或流式响应。业务字段、状态码和 Session 数据格式与 JavaScript 版保持一致。

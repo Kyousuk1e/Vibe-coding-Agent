@@ -1,6 +1,6 @@
 # AI Prompt 与问题解决记录
 
-开发日期：2026-09-10。AI 辅助工具：Codex；通过并行子任务实现和独立检查，代码均为本仓库中的普通 JavaScript。这里记录用户要求、实际使用的关键指令和已发现的问题，不把未执行的实验写成结果。
+开发日期：2026-09-10。AI 辅助工具：Codex；通过并行子任务实现和独立检查，初版代码使用普通 JavaScript，后续新增 Python 标准库实现；两版分别位于 `javascript/` 和 `python/`。这里记录用户要求、实际使用的关键指令和已发现的问题，不把未执行的实验写成结果。
 
 ## 用户任务与后续选择
 
@@ -10,7 +10,7 @@
 
 ## 运行时 Prompt
 
-完整、实际执行的 system prompt 位于 [`src/prompt.js`](../src/prompt.js)，直接被 Runtime 导入，不存在与文档脱节的另一份 Prompt。
+两版实际执行的 system prompt 分别位于 [JavaScript Prompt](../javascript/src/prompt.js) 与 [Python Prompt](../python/agent/prompt.py)，直接被 Runtime 导入，不存在与文档脱节的另一份 Prompt。
 
 关键约束包括：
 
@@ -59,13 +59,21 @@
 
 用户要求在现有仓库中新增 Python 版本，沿用真实千问 API，自行实现 Runtime、工具注册、会话管理和上下文压缩，并补齐测试。Node.js 版本继续保留。
 
-使用的开发指令要点：Python 3.11+ 标准库、无 Agent 框架；按原模块职责拆分 agent/runtime.py、registry.py、tools.py、store.py、context.py、llm.py、parser.py 等；Session JSON 与 HTTP 字段保持兼容；本地API统一运行在一个 asyncio 循环；测试注入可控模型结果，真实API单独验证；禁止读取或打印密钥到开发记录。
+使用的开发指令要点：Python 3.11+ 标准库、无 Agent 框架；按原模块职责拆分 `python/agent/` 下的 runtime.py、registry.py、tools.py、store.py、context.py、llm.py、parser.py 等；Session JSON 与 HTTP 字段保持兼容；本地API统一运行在一个 asyncio 循环；测试注入可控模型结果，真实API单独验证；禁止读取或打印密钥到开发记录。
 
 核心检查包括：asyncio 锁必须覆盖缓存读取和最终保存；工具在独立副本上执行，线程或协程迟到结果不得回写；参数 JSON 与工具调用配对保持原生协议；当前待办独立于摘要；Python版本补充已保存 error/max_steps 的重放测试；两套服务不能同时写同一数据目录。Python 字符计数与JS UTF-16计数的差异在Python说明中明确记录。
 
 开发与最终验证结果见 [Python 验证记录](PYTHON_VALIDATION.md)。
 
-独立审查发现并修正了自定义PORT未传给Python CLI、HTTP显式null requestId被误当成未提供两个兼容性问题，并新增回归。最终95项Python离线测试、原77项Node测试及两种语言实际Runtime双向互读通过。真实千问验收通过8轮对话与持久化检查，15次模型调用、7次工具执行。没有把Node的既有真实验收结果当作Python版本的成功证据。
+独立审查发现并修正了自定义PORT未传给Python CLI、HTTP显式null requestId被误当成未提供两个兼容性问题，并新增回归。目录拆分前的本地验收中，95项Python离线测试、原77项Node测试及两种语言实际Runtime双向互读通过。真实千问验收通过8轮对话与持久化检查，15次模型调用、7次工具执行。没有把Node的既有真实验收结果当作Python版本的成功证据。
+
+## 按语言分类的目录调整
+
+用户进一步要求将不同语言版本分类保存，保留 JavaScript 和 Python 两套实现。JavaScript 的源码、测试、脚本、package.json 和版本 README 放入 `javascript/`；Python 的 agent 包、测试、脚本和版本 README 放入 `python/`。每版读取自己的 `.env`，默认使用自己的 data 目录；共同提交资料继续位于根目录 `docs/`，跨语言检查脚本保留在根目录 `scripts/check_compat.py`。
+
+根 README 提供版本选择和入口，两版 README 各自保留系统设计、运行方式及 memory 说明。调整路径时保留历史验收结果及时间，不把历史实测当作新目录或新 CI 的通过证据。首次远程 Python Windows 3.11 失败定位为 `test_llm` 对正常线程采用 10ms 超时的测试假设，改为确定性测试后另行验证。
+
+分类后的 JavaScript 22 个文件语法检查与 77 项离线测试、Python 29 个文件语法检查与 95 项离线测试、根目录双向 Session 兼容检查已通过。线程超时测试改用事件屏障验证，不依赖固定 sleep 猜测线程何时结束。新的远程 CI 结果在 [Python 验证记录](PYTHON_VALIDATION.md) 单独记录。
 
 ## 查阅资料（原 Node.js 版本）
 

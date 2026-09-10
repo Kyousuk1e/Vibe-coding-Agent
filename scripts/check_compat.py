@@ -8,7 +8,8 @@ import sys
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "python"))
+NODE_ROOT = ROOT / "javascript"
 
 from agent.context import ContextManager
 from agent.runtime import AgentRuntime
@@ -52,7 +53,7 @@ async def main():
     if not node:
         raise RuntimeError("This optional cross-language check requires Node.js and Python")
     with tempfile.TemporaryDirectory(prefix="agent-compat-") as directory:
-        node_id = subprocess.check_output([node, "--input-type=module", "-e", CREATE_NODE, directory], cwd=ROOT, text=True).strip()
+        node_id = subprocess.check_output([node, "--input-type=module", "-e", CREATE_NODE, directory], cwd=NODE_ROOT, text=True).strip()
         store = SessionStore(directory)
         client = FakeClient([])
         runtime = AgentRuntime(store=store, client=client, registry=create_tools(), context=ContextManager())
@@ -68,7 +69,7 @@ async def main():
         if result["status"] != "ok":
             raise AssertionError("Python fixture failed")
         completed = subprocess.run([node, "--input-type=module", "-e", READ_NODE, directory, session["id"]],
-                                   cwd=ROOT, text=True, check=True, capture_output=True)
+                                   cwd=NODE_ROOT, text=True, check=True, capture_output=True)
         print(completed.stdout.strip())
 
 
