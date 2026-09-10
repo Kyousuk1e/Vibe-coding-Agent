@@ -8,7 +8,7 @@
 | `npm test` | 77 项通过，0 失败，0 跳过 |
 | Runtime/HTTP/文件持久化集成 | 已包含在离线测试中，使用真实模块与独立临时目录 |
 | 真实千问 API 验收 | **未完成**：`npm run test:live` 因缺少 `DASHSCOPE_API_KEY` 在发起请求前退出，退出码1 |
-| GitHub Actions 多平台验证 | 工作流已配置，本地记录不代表云端工作流已执行 |
+| GitHub Actions 多平台验证 | Windows/Linux × Node 22/24 的4个任务全部通过，代码提交 `874614c`，[运行记录](https://github.com/Kyousuk1e/Vibe-coding-Agent/actions/runs/34436306389) |
 
 没有把离线可控 LLM 响应计作真实 API 成功证据。生产入口只使用真实 HTTP LLM 客户端；缺失密钥会明确报错。完成本地 `.env` 配置后执行 `npm run test:live`，其实际答案、工具 trace、供应商/模型和时间写入 `docs/live-result.json`。该文件默认被 Git 忽略，可检查后按需分享。
 
