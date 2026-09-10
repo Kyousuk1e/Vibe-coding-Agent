@@ -22,7 +22,8 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - name: Copy only this project to an independent directory
-        run: node -e "require('node:fs').cpSync('javascript', require('node:path').join(process.env.RUNNER_TEMP, 'minimal-agent-javascript'), { recursive: true })"
+        run: >-
+          node -e "require('node:fs').cpSync('javascript', require('node:path').join(process.env.RUNNER_TEMP, 'minimal-agent-javascript'), { recursive: true })"
       - run: npm run check
         working-directory: ${{ runner.temp }}/minimal-agent-javascript
       - run: npm test
