@@ -1,0 +1,15 @@
+{
+  "name": "minimal-agent-from-scratch",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A framework-free Agent Runtime with real LLM tool calling, sessions, memory and traces",
+  "engines": { "node": ">=22.13.0" },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env src/server.js",
+    "chat": "node --env-file-if-exists=.env src/cli.js",
+    "test": "node --test test/*.test.js",
+    "test:live": "node --env-file-if-exists=.env scripts/live-smoke.js",
+    "check": "node scripts/check.js"
+  }
+}
