@@ -1,8 +1,20 @@
 # 从零实现一个最小可用 Agent
 
-一个使用**真实千问 API**、由 Node.js 标准库实现的 Agent。核心代码没有 LangGraph、LangChain、OpenHands、OpenClaw、PI 或 Agent SDK，也没有第三方运行依赖。
+一个使用**真实千问 API**、分别由 Node.js 与 Python 标准库实现的 Agent。核心代码没有 LangGraph、LangChain、OpenHands、OpenClaw、PI 或 Agent SDK，也没有第三方运行依赖。
 
 代码仓库：<https://github.com/Kyousuk1e/Vibe-coding-Agent>
+
+仓库同时提供 **Node.js 版**（`src/`）和新增的 **Python 版**（`agent/`）。两套实现都自行编写 Agent Runtime，使用真实千问 API，不依赖 Agent 框架。Python 使用标准库，要求 Python 3.11+，无需安装第三方包。
+
+| 操作 | Node.js | Python |
+| --- | --- | --- |
+| 启动服务 | `npm start` | `python -m agent serve` |
+| 打开聊天 | `npm run chat -- --user A` | `python -m agent chat --user A` |
+| 离线测试 | `npm test` | `python -m unittest discover -s tests -v` |
+| 语法检查 | `npm run check` | `python scripts/check.py` |
+| 真实 API 验收 | `npm run test:live` | `python scripts/live_smoke.py` |
+
+两版读取相同的环境变量及 `.env` 格式，HTTP 接口和 Session JSON 字段兼容。**同一个数据目录只能由一个服务进程写入**；切换版本时先停止原服务。两个版本同时演示时，请分别配置端口和数据目录。Windows 上也可用 `py` 替代 `python`。Python 的运行方式、模块对应及验证证据见 [Python 说明](docs/PYTHON.md)。
 
 LLM 自主选择直接回答或调用 `calculator`、`search`、`todo`、`weather`。只有 search/weather 的数据是明确标识的 mock；生产运行入口不会回退到 mock LLM。离线测试使用可控响应来验证运行时，真实模型验收单独运行。
 

@@ -55,7 +55,19 @@
 
 用 CLI 窗口配合一个本地 HTTP 服务展示多 session，集中管理锁与磁盘状态。文件存储适合此题目的单机 MVP；没有引入数据库、向量召回或复杂总结服务。摘要是可解释的摘录式压缩，避免额外调用费用，也明确承认信息损失。工具和上下文都有容量限制，不能以静默截断当前任务来伪装无限记忆。
 
-## 查阅资料
+## Python 版本开发记录
+
+用户要求在现有仓库中新增 Python 版本，沿用真实千问 API，自行实现 Runtime、工具注册、会话管理和上下文压缩，并补齐测试。Node.js 版本继续保留。
+
+使用的开发指令要点：Python 3.11+ 标准库、无 Agent 框架；按原模块职责拆分 agent/runtime.py、registry.py、tools.py、store.py、context.py、llm.py、parser.py 等；Session JSON 与 HTTP 字段保持兼容；本地API统一运行在一个 asyncio 循环；测试注入可控模型结果，真实API单独验证；禁止读取或打印密钥到开发记录。
+
+核心检查包括：asyncio 锁必须覆盖缓存读取和最终保存；工具在独立副本上执行，线程或协程迟到结果不得回写；参数 JSON 与工具调用配对保持原生协议；当前待办独立于摘要；Python版本补充已保存 error/max_steps 的重放测试；两套服务不能同时写同一数据目录。Python 字符计数与JS UTF-16计数的差异在Python说明中明确记录。
+
+开发与最终验证结果见 [Python 验证记录](PYTHON_VALIDATION.md)。
+
+独立审查发现并修正了自定义PORT未传给Python CLI、HTTP显式null requestId被误当成未提供两个兼容性问题，并新增回归。最终95项Python离线测试、原77项Node测试及两种语言实际Runtime双向互读通过。真实千问验收通过8轮对话与持久化检查，15次模型调用、7次工具执行。没有把Node的既有真实验收结果当作Python版本的成功证据。
+
+## 查阅资料（原 Node.js 版本）
 
 - [千问 Function Calling](https://help.aliyun.com/zh/model-studio/qwen-function-calling)：原生调用与结果回填。
 - [百炼 OpenAI 兼容接口](https://help.aliyun.com/zh/model-studio/compatibility-of-openai-with-dashscope)：Base URL 与地域。

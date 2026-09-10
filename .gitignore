@@ -7,3 +7,10 @@ coverage/
 *.log
 *.tmp
 docs/live-result.json
+docs/python-live-result.json
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+build/
+dist/
