@@ -28,9 +28,11 @@
 | JavaScript 回归 | 在 `javascript/` 执行检查，22 个文件语法及 77 项离线测试通过 |
 | 两种语言 Session 兼容 | 在仓库根目录执行 `python scripts/check_compat.py`，Node → Python 与 Python → Node 均通过 |
 | Python 完整离线回归 | 在 `python/` 重新执行 unittest，95 项通过，0 失败，0 跳过；包含实际服务与 CLI 子进程测试 |
-| 远程 CI | 已配置 4 个 Node、4 个 Python、2 个跨语言检查任务；目录调整后的远程执行结果待提交重跑 |
+| 远程 CI | 分类后的代码提交 `5ec3634`：4 个 Node、4 个 Python、2 个跨语言检查任务全部通过，见 [GitHub Actions 实际执行](https://github.com/Kyousuk1e/Vibe-coding-Agent/actions/runs/34493933994) |
 
 Windows 3.11 的首次失败来自 `test_llm` 将普通工作线程限定为 10ms 的不稳定时间假设。测试已改用事件屏障确认阻塞、超时和迟到返回的顺序，并给正常调用合理预算；本地回归通过，生产 LLM 客户端未修改。
+
+修正后 Windows/Linux × Python 3.11/3.14 均通过完整测试；Node.js 22/24 的两平台矩阵及两平台跨语言兼容检查也通过。本段记录的是上面链接中的代码提交，后续纯文档提交不改变该验收对象。
 
 ## 真实API验收
 

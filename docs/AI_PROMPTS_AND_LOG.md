@@ -75,6 +75,8 @@
 
 分类后的 JavaScript 22 个文件语法检查与 77 项离线测试、Python 29 个文件语法检查与 95 项离线测试、根目录双向 Session 兼容检查已通过。线程超时测试改用事件屏障验证，不依赖固定 sleep 猜测线程何时结束。新的远程 CI 结果在 [Python 验证记录](PYTHON_VALIDATION.md) 单独记录。
 
+代码提交 `5ec3634` 的 [GitHub Actions](https://github.com/Kyousuk1e/Vibe-coding-Agent/actions/runs/34493933994) 全部 10 个任务通过：Windows/Linux × Node.js 22/24、Windows/Linux × Python 3.11/3.14，以及两个平台的双向 Session 互读。首次 Windows 3.11 测试失败已通过修正时间假设解决。
+
 ## 查阅资料（原 Node.js 版本）
 
 - [千问 Function Calling](https://help.aliyun.com/zh/model-studio/qwen-function-calling)：原生调用与结果回填。
